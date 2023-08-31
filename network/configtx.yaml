@@ -1,0 +1,197 @@
+Organizations:
+  - &OrdererOrg
+    Name: Orderer
+    ID: OrdererMSP
+    MSPDir: crypto-config/ordererOrganizations/property-registration-network.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+
+  - &beneficiary
+    Name: beneficiaryMSP
+    ID: beneficiaryMSP
+    MSPDir: crypto-config/peerOrganizations/beneficiary.property-registration-network.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('beneficiaryMSP.admin', 'beneficiaryMSP.peer', 'beneficiaryMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('beneficiaryMSP.admin', 'beneficiaryMSP.peer', 'beneficiaryMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('beneficiaryMSP.admin', 'beneficiaryMSP.peer', 'beneficiaryMSP.client')"
+    AnchorPeers:
+      - Host: peer0.beneficiary.property-registration-network.com
+        Port: 7051
+
+  - &agent
+    Name: agentMSP
+    ID: agentMSP
+    MSPDir: crypto-config/peerOrganizations/agent.property-registration-network.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('agentMSP.admin', 'agentMSP.peer', 'agentMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('agentMSP.admin', 'agentMSP.peer', 'agentMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('agentMSP.admin', 'agentMSP.peer', 'agentMSP.client')"
+    AnchorPeers:
+      - Host: peer0.agent.property-registration-network.com
+        Port: 9051
+
+  - &government
+    Name: governmentMSP
+    ID: governmentMSP
+    MSPDir: crypto-config/peerOrganizations/government.property-registration-network.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('governmentMSP.admin', 'governmentMSP.peer', 'governmentMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('governmentMSP.admin', 'governmentMSP.peer', 'governmentMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('governmentMSP.admin', 'governmentMSP.peer', 'governmentMSP.client')"
+    AnchorPeers:
+      - Host: peer0.government.property-registration-network.com
+        Port: 10051
+
+  - &buyer
+    Name: buyerMSP
+    ID: buyerMSP
+    MSPDir: crypto-config/peerOrganizations/buyer.property-registration-network.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('buyerMSP.admin', 'buyerMSP.peer', 'buyerMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('buyerMSP.admin', 'buyerMSP.peer', 'buyerMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('buyerMSP.admin', 'buyerMSP.peer', 'buyerMSP.client')"
+    AnchorPeers:
+      - Host: peer0.buyer.property-registration-network.com
+        Port: 11051
+
+#Capabilities
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V1_4_3: true
+    V1_3: false
+    V1_1: false
+  Orderer: &OrdererCapabilities
+    V1_4_2: true
+    V1_1: false
+  Application: &ApplicationCapabilities
+    V1_4_2: true
+    V1_3: false
+    V1_2: false
+    V1_1: false
+
+#Application
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies: &ApplicationDefaultPolicies
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "ANY Admins"
+  Capabilities: *ApplicationCapabilities
+
+#Orderer
+Orderer: &OrdererDefaults
+  OrdererType: solo
+  Addresses:
+    - orderer.property-registration-network.com:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Capabilities: *OrdererCapabilities
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "ANY Admins"
+    # BlockValidation specifies what signatures must be included in the block
+    # from the orderer for the peer to validate it.
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+  Policies:
+    # Who may invoke the 'Deliver' API
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    # Who may invoke the 'Broadcast' API
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    # By default, who may modify elements at this config level
+    Admins:
+      Type: ImplicitMeta
+      Rule: "ANY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+
+#Profiles
+Profiles:
+  OrdererGenesis:
+    <<: *ChannelDefaults
+    Capabilities:
+      <<: *ChannelCapabilities
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererOrg
+      Capabilities:
+        <<: *OrdererCapabilities
+    Consortiums:
+      RegistrationConsortium:
+        Organizations:
+          - *beneficiary
+          - *agent
+          - *government
+          - *buyer
+
+  RegistrationChannel:
+    Consortium: RegistrationConsortium
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *beneficiary
+        - *agent
+        - *government
+        - *buyer
+      Capabilities:
+        <<: *ApplicationCapabilities
